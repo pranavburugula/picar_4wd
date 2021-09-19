@@ -3,6 +3,7 @@ import numpy as np
 from picar_4wd import Speed
 import time
 import signal
+import sys
 
 def quit_handler(signal, frame):
     fc.stop()

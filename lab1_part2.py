@@ -23,7 +23,7 @@ def scan_step():
     elif current_angle <= min_angle:
         current_angle = min_angle
         us_step = STEP
-    dist = fc.get_distance_at(current_angle)
+    dist = fc.get_distance_at(current_angle) - current_angle * 0.2
 
     scan_list.append(dist)
     if current_angle == min_angle or current_angle == max_angle:
@@ -46,7 +46,7 @@ def sig_handler(signal, frame):
     global scans
     # scan_arr = np.array(scans)
     # np.save(scan_arr, "maps")
-    map_to_save = scans[-1].astype(int)
+    map_to_save = scans[-2].astype(int)
     print(map_to_save)
     np.savetxt("map.csv", map_to_save, delimiter=" ", fmt='%i')
     # with open("map.txt", 'rw') as file:
@@ -89,9 +89,13 @@ while 1:
                 
                 # fill in line between this and last point as ones
                 if last == 1:
-                    slope = (row - last_row) / (col - last_col)
-                    for i in range(last_col, col):
-                        grid[int(last_row + slope * (i - last_col)) - 1][i] = 1
+                    if col == last_col:
+                        for i in range(last_row, row):
+                            grid[i][col - 1] = 1
+                    else:
+                        slope = (row - last_row) / (col - last_col)
+                        for i in range(last_col, col):
+                            grid[int(last_row + slope * (i - last_col)) - 1][i] = 1
 
                 
                 last = 1
