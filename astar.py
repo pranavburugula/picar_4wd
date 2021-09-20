@@ -1,25 +1,17 @@
 from queue import PriorityQueue
+from car import Car
 
-LEFT_MAX = -4
-RIGHT_MAX = 5
-UP_MAX = 4
-BASE_X = 4
-BASE_Y = 4
+LEFT_MAX = -100
+RIGHT_MAX = 99
+UP_MAX = 99
+BASE_X = 100
+BASE_Y = 99
 
-GRID_ROWS = 5
-GRID_COLS = 10
+GRID_ROWS = 100
+GRID_COLS = 200
 
-PATH_THRESHOLD = 3
+PATH_THRESHOLD = 5
 
-def updateGrid():
-    # TODO: Placeholder for actual method
-    grid = [[0,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0],
-            [0,1,1,1,1,1,1,1,1,0],
-            [0,0,0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0,0,0]]
-
-    return grid
 
 class Node:
     def __init__(self, parent=None, pos=None):
@@ -80,6 +72,7 @@ def search(grid, start, end):
 
         for pos in adj:
             newX, newY = curr.pos[0] + pos[0], curr.pos[1] + pos[1]
+            # print("newX={x}, newY={y}".format(x = newX, y = newY))
             if newX >= GRID_COLS or newX < 0 or newY >= GRID_ROWS or newY < 0 or grid[newY][newX] == 1:
                 continue
 
@@ -93,9 +86,11 @@ def search(grid, start, end):
 
             q.put((newNode.f, newNode))
 
-def moveOnPath(path, target):
+def moveOnPath(path, target, car):
     prev = None
     totalMoves = (0, 0)
+    if path is None:
+        return None
     for idx, curr in enumerate(path):
         if idx == PATH_THRESHOLD or prev == target:
             break
@@ -107,14 +102,25 @@ def moveOnPath(path, target):
         move = (curr[0]-prev[0], curr[1]-prev[1])
         totalMoves = (totalMoves[0]+move[0], totalMoves[1]+move[1])
         # TODO: move the car in the given direction
-
+        if move[0] == -1:       # left
+            car.set_orientation(180, 2)
+            car.move_distance(1, 2)
+        elif move[0] == 1:      # right
+            car.set_orientation(0, 2)
+            car.move_distance(1, 2)
+        elif move[1] == 1:     # down
+            car.set_orientation(270, 2)
+            car.move_distance(1, 2)
+        elif move[1] == -1:      # up
+            car.set_orientation(90, 2)
+            car.move_distance(1, 2)
         prev = curr
 
-    target = (target[0]-totalMoves[0], target[1]-move[1])
-    return target
+    # target = (target[0]-totalMoves[0], target[1]-move[1])
+    return totalMoves
 
-def moveToPoint(x, y):
-    while x != 0 and y != 0:
+def moveToPoint(x, y, car):
+    while x != 0 or y != 0:
         remX, remY = 0, 0
         if x < LEFT_MAX:
             remX = x + LEFT_MAX
@@ -135,16 +141,21 @@ def moveToPoint(x, y):
 
         y = BASE_Y-y
 
-        print(x, y, remX, remY)
-        base = (BASE_X, BASE_Y)
-        while (x, y) != base:
-            grid = updateGrid()
-            path = search(grid, (BASE_X, BASE_Y), (x, y))
-            x, y = moveOnPath(path, (x, y))
-            print(path, x, y)
+        # print(x, y, remX, remY)
+        base = (int(car.get_x()), int(car.get_y()))
+        moves_made = (0,0)
+        while (x,y) != base:
+            car.update_map()
+            grid = car.get_env_grid()
+            path = search(grid, base, (x, y))
+            moves_made = moveOnPath(path, (x, y), car)
+            
+            base = (base[0]+moves_made[0], base[1]+moves_made[1])
+            print("path = {p}, x = {x}, y = {y}, base = ({b_x}, {b_y})".format(p = path, x = x, y = y, b_x = base[0], b_y = base[1]))
 
         x = remX
         y = remY
 
 if __name__ == "__main__":
-    moveToPoint(1, 5)
+    car = Car()
+    moveToPoint(0, 20, car)

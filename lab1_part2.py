@@ -3,6 +3,7 @@ import numpy as np
 import signal
 import sys
 import time
+from car import Car
 
 ANGLE_RANGE = 180
 TURN_RADIUS = 13.97
@@ -144,12 +145,15 @@ def scan_relative_map():
             scans.append(grid)
 
 if __name__=="__main__":
-    signal.signal(signal.SIGINT, move_sig_handler)
-    fc.left_rear_speed.start()
-    fc.right_rear_speed.start()
-    move_distance(20, 2)
-    turn_angle(-90, 2)
-    move_distance(5, 2)
+    car = Car()
+    # car.move_distance(20, 2)
+    # car.turn_angle(-90, 2)
+    # car.move_distance(5, 2)
+    # car.set_orientation(90, 2)
+    # car.set_orientation(180, 2)
+    # car.set_orientation(270, 2)
+    # car.set_orientation(0, 2)
+    # car.set_orientation(200, 2)
+    car.update_map()
 
-    fc.left_rear_speed.deinit()
-    fc.right_rear_speed.deinit()
+    del car
