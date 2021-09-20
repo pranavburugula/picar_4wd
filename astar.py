@@ -1,5 +1,10 @@
 from queue import PriorityQueue
 from car import Car
+import threading
+from camera import run_object_detection
+import picar_4wd as fc
+import signal
+import time
 
 LEFT_MAX = -100
 RIGHT_MAX = 99
@@ -11,7 +16,9 @@ GRID_ROWS = 100
 GRID_COLS = 200
 
 PATH_THRESHOLD = 5
+t1, t2 = None, None
 
+paused = False
 
 class Node:
     def __init__(self, parent=None, pos=None):
@@ -86,7 +93,7 @@ def search(grid, start, end):
 
             q.put((newNode.f, newNode))
 
-def moveOnPath(path, target, car):
+def moveOnPath(path, target, car, mutex):
     prev = None
     totalMoves = (0, 0)
     if path is None:
@@ -94,11 +101,19 @@ def moveOnPath(path, target, car):
     for idx, curr in enumerate(path):
         if idx == PATH_THRESHOLD or prev == target:
             break
+        mutex.acquire(blocking=True)
+        # if not mutex.acquire():
+        #     print("Could not acquire lock, waiting")
+        #     # cond.wait()
+        #     print("Wait over")
+        #     mutex.acquire()
+        # else:
+        print("Acquired lock in A*")
 
         if prev == None:
             prev = curr
+            mutex.release()
             continue
-        
         move = (curr[0]-prev[0], curr[1]-prev[1])
         totalMoves = (totalMoves[0]+move[0], totalMoves[1]+move[1])
         # TODO: move the car in the given direction
@@ -116,10 +131,13 @@ def moveOnPath(path, target, car):
             car.move_distance(1, 2)
         prev = curr
 
+        mutex.release()
+        print("Released lock in A*")
+
     # target = (target[0]-totalMoves[0], target[1]-move[1])
     return totalMoves
 
-def moveToPoint(x, y, car):
+def moveToPoint(x, y, car, mutex):
     while x != 0 or y != 0:
         remX, remY = 0, 0
         if x < LEFT_MAX:
@@ -148,14 +166,40 @@ def moveToPoint(x, y, car):
             car.update_map()
             grid = car.get_env_grid()
             path = search(grid, base, (x, y))
-            moves_made = moveOnPath(path, (x, y), car)
+            moves_made = moveOnPath(path, (x, y), car, mutex)
             
             base = (base[0]+moves_made[0], base[1]+moves_made[1])
-            print("path = {p}, x = {x}, y = {y}, base = ({b_x}, {b_y})".format(p = path, x = x, y = y, b_x = base[0], b_y = base[1]))
+            # print("path = {p}, x = {x}, y = {y}, base = ({b_x}, {b_y})".format(p = path, x = x, y = y, b_x = base[0], b_y = base[1]))
 
         x = remX
         y = remY
 
-if __name__ == "__main__":
+def stop_car(signal, frame):
+    global paused
+    paused = True
+
+def resume(signal, frame):
+    global paused
+    paused = False
+
+def main():
+    signal.signal(signal.SIGUSR1, stop_car)
+    signal.signal(signal.SIGUSR2, stop_car)
     car = Car()
-    moveToPoint(0, 20, car)
+
+    mutex = threading.Lock()
+
+    global t1
+    global t2
+
+    t1 = threading.Thread(target=moveToPoint, args=(0, 10, car, mutex))
+    t2 = threading.Thread(target=run_object_detection, args=(mutex,))
+
+    t1.start()
+    t2.start()
+
+    t1.join()
+    t2.join()
+
+if __name__ == "__main__":
+    main()

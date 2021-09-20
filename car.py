@@ -112,8 +112,8 @@ class Car():
             for i in range(len(scan)):
                 if scan[i] < 0:
                     continue
-                row = int((self.position[1] - (scan[i] * sines[i]) / 7.62))
-                col = int(self.position[0] + (scan[i] * cosines[i] / 7.62))
+                row = int((self.position[1] - (scan[i] * sines[i]) / 5))
+                col = int(self.position[0] + (scan[i] * cosines[i] / 5))
 
                 if row < 0 or col < 0 or col >= 200 or row >= 100:
                     continue
